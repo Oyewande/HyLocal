@@ -1,0 +1,29 @@
+# Web scraping
+playwright==1.44.0
+beautifulsoup4==4.12.3
+httpx==0.27.0
+lxml==5.2.2
+twscrape==0.14.0
+instaloader==4.13.1
+
+# AI extraction
+anthropic==0.28.0
+
+# Storage
+supabase==2.4.6
+psycopg2-binary==2.9.9
+
+# Telegram bot
+python-telegram-bot==21.3
+
+# Scheduling
+apscheduler==3.10.4
+
+# Geocoding
+googlemaps==4.10.0
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.7.4
+tenacity==8.3.0
+loguru==0.7.2

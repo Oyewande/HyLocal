@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import AsyncIterator
 
@@ -44,8 +45,6 @@ class InstagramScraper(BaseScraper):
         self.max_posts_per_tag = max_posts_per_tag
 
     async def scrape(self) -> AsyncIterator[RawSignal]:
-        # instaloader is synchronous — we run it inline
-        # For a future async refactor, wrap with asyncio.to_thread()
         loader = instaloader.Instaloader(
             download_pictures=False,
             download_videos=False,
@@ -58,19 +57,26 @@ class InstagramScraper(BaseScraper):
 
         for tag in self.hashtags:
             self.logger.info(f"Scraping #{tag} on Instagram")
-            count = 0
-            try:
-                hashtag = instaloader.Hashtag.from_name(loader.context, tag)
-                for post in hashtag.get_posts():
-                    if count >= self.max_posts_per_tag:
-                        break
-                    yield self._to_signal(post, tag)
-                    count += 1
-            except instaloader.exceptions.ConnectionException as e:
-                self.logger.warning(f"Rate limited or connection error on #{tag}: {e}")
-            except Exception as e:
-                self.logger.error(f"Failed scraping #{tag} on Instagram: {e}")
-            self.logger.debug(f"#{tag}: {count} posts")
+            # Run synchronous instaloader in a thread so it doesn't block the event loop
+            signals = await asyncio.to_thread(self._scrape_tag_sync, loader, tag)
+            for signal in signals:
+                yield signal
+            self.logger.debug(f"#{tag}: {len(signals)} posts")
+
+    def _scrape_tag_sync(self, loader: instaloader.Instaloader, tag: str) -> list[RawSignal]:
+        """Synchronous scrape of a single hashtag — called via asyncio.to_thread()."""
+        signals: list[RawSignal] = []
+        try:
+            hashtag = instaloader.Hashtag.from_name(loader.context, tag)
+            for post in hashtag.get_posts():
+                if len(signals) >= self.max_posts_per_tag:
+                    break
+                signals.append(self._to_signal(post, tag))
+        except instaloader.exceptions.ConnectionException as e:
+            self.logger.warning(f"Rate limited or connection error on #{tag}: {e}")
+        except Exception as e:
+            self.logger.error(f"Failed scraping #{tag} on Instagram: {e}")
+        return signals
 
     def _to_signal(self, post: instaloader.Post, hashtag: str) -> RawSignal:
         images: list[str] = []

@@ -1,10 +1,20 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
+import dateparser
 from loguru import logger
 
 from processor.extractor import Extractor
 from processor.geocoder import Geocoder
 from scraper.models import ExtractedEvent, RawSignal
+
+# Lagos is UTC+1 year-round (no DST)
+_LAGOS_SETTINGS = {
+    "TIMEZONE": "Africa/Lagos",
+    "RETURN_AS_TIMEZONE_AWARE": True,
+    "PREFER_DATES_FROM": "future",
+}
 
 
 class Pipeline:
@@ -37,6 +47,13 @@ class Pipeline:
             event = self.extractor.extract(signal)
             if event is None:
                 continue
+
+            # Resolve date_raw → datetime
+            if event.date_raw and event.date is None:
+                parsed = dateparser.parse(event.date_raw, settings=_LAGOS_SETTINGS)
+                if parsed:
+                    event.date = parsed
+                    logger.debug(f"Resolved date '{event.date_raw}' → {parsed.isoformat()}")
 
             # Geocode if we have a raw location
             if event.location_raw:

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyLocal — What's on in Lagos this weekend</title>
+  <style>
+    :root {
+      --green: #0A4D2A;
+      --green-light: #0E6E3D;
+      --gold: #F5A623;
+      --gold-dim: #C47F0E;
+      --bg: #060F08;
+      --card-bg: #0D1F12;
+      --card-border: #1A3D22;
+      --text: #E8F5EC;
+      --muted: #6BAF87;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--green);
+      padding: 20px 24px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 2px solid var(--gold);
+    }
+
+    .logo-pin {
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span { color: var(--gold); }
+
+    .tagline {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      background: linear-gradient(180deg, #0E2E18 0%, var(--bg) 100%);
+      padding: 32px 24px 28px;
+      text-align: center;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .hero h2 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+
+    .hero p { color: var(--muted); font-size: 15px; }
+
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      padding-left: 2px;
+    }
+
+    .cards { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.15s;
+    }
+
+    .card:hover { border-color: var(--green-light); }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .cat-emoji {
+      font-size: 26px;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+
+    .scarce-badge {
+      display: inline-block;
+      background: #7A1800;
+      color: #FFB380;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-top: 5px;
+      letter-spacing: 0.3px;
+    }
+
+    .meta { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .meta-row .icon { font-size: 15px; flex-shrink: 0; }
+
+    .desc {
+      font-size: 14px;
+      color: #9BB8A0;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .card-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s;
+      cursor: pointer;
+    }
+
+    .btn:hover { opacity: 0.85; }
+
+    .btn-ticket {
+      background: var(--gold);
+      color: #1A0A00;
+    }
+
+    .btn-source {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--muted);
+    }
+
+    .vibe-pill {
+      display: inline-block;
+      background: #112A18;
+      border: 1px solid var(--card-border);
+      color: var(--muted);
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .cost-free { color: #4CAF72; font-weight: 600; }
+    .cost-paid { color: var(--gold); }
+
+    /* States */
+    #loading, #empty, #error {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--card-border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #empty h3, #error h3 { color: #fff; font-size: 18px; margin-bottom: 8px; }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    footer a { color: var(--gold); text-decoration: none; }
+
+    .tg-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #229ED9;
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-top: 16px;
+    }
+
+    .tg-btn:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg class="logo-pin" viewBox="0 0 60 60" fill="none">
+    <path d="M30 4C19 4 10 13 10 24C10 39 30 56 30 56C30 56 50 39 50 24C50 13 41 4 30 4Z" fill="#F5A623"/>
+    <circle cx="30" cy="23" r="9" fill="#0A4D2A"/>
+    <circle cx="30" cy="23" r="4" fill="#F5A623" opacity="0.6"/>
+  </svg>
+  <div>
+    <h1>Hy<span>Local</span></h1>
+    <div class="tagline">Lagos · Discover</div>
+  </div>
+</header>
+
+<div class="hero">
+  <h2>What's on this weekend 🌆</h2>
+  <p>Handpicked events in Ikeja, Ketu, Surulere &amp; beyond</p>
+</div>
+
+<main>
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Finding what's happening near you…</p>
+  </div>
+  <div id="empty" style="display:none">
+    <h3>Nothing this weekend yet</h3>
+    <p>Check back Friday — we update the list weekly.</p>
+  </div>
+  <div id="error" style="display:none">
+    <h3>Couldn't load events</h3>
+    <p id="error-msg"></p>
+  </div>
+  <div id="events" style="display:none">
+    <p class="section-label" id="events-label"></p>
+    <div class="cards" id="cards"></div>
+  </div>
+</main>
+
+<footer>
+  <p>Get the full experience on Telegram</p>
+  <a class="tg-btn" href="https://t.me/hylocale_bot">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.7 8.02c-.13.58-.48.72-.97.45l-2.67-1.97-1.29 1.24c-.14.14-.26.26-.54.26l.19-2.72 4.95-4.47c.21-.19-.05-.3-.33-.11L7.9 14.44l-2.63-.82c-.57-.18-.58-.57.12-.85l10.28-3.96c.47-.17.88.12.97.99z"/>
+    </svg>
+    Open @hylocale_bot
+  </a>
+  <p style="margin-top:20px">
+    Built with ❤️ in Lagos · <a href="https://t.me/hylocale_bot">@hylocale_bot</a>
+  </p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  // ── CONFIG — replace with your Supabase project URL and anon key ──────────
+  const SUPABASE_URL  = "YOUR_SUPABASE_URL";   // e.g. https://xxxx.supabase.co
+  const SUPABASE_ANON = "YOUR_SUPABASE_ANON_KEY";
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const CAT_EMOJI = {
+    music:"🎵", comedy:"😂", tech:"💻", fitness:"🏃", food:"🍽️",
+    art:"🎨", networking:"🤝", gaming:"🎮", popup:"✨", other:"📍"
+  };
+
+  const VIBE_EMOJI = {
+    chill:"😌", social:"🎉", professional:"💼",
+    party:"🥳", active:"💪", intimate:"🕯️"
+  };
+
+  function formatDate(iso, raw) {
+    if (!iso) return raw || null;
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString("en-NG", {
+        weekday:"long", day:"numeric", month:"long",
+        hour:"numeric", minute:"2-digit", timeZone:"Africa/Lagos"
+      });
+    } catch { return raw; }
+  }
+
+  function formatCost(event) {
+    if (event.is_free) return '<span class="cost-free">Free entry 💚</span>';
+    if (event.cost_raw) return `<span class="cost-paid">₦ ${event.cost_raw}</span>`;
+    return null;
+  }
+
+  function cardHTML(event) {
+    const cats = (event.categories || []);
+    const emoji = cats.length ? (CAT_EMOJI[cats[0]] || "📍") : "📍";
+    const dateStr = formatDate(event.date, event.date_raw);
+    const cost = formatCost(event);
+    const vibe = event.vibe ? `${VIBE_EMOJI[event.vibe] || ""} ${event.vibe}` : null;
+
+    let meta = "";
+    if (dateStr) meta += `<div class="meta-row"><span class="icon">📅</span>${dateStr}</div>`;
+    if (event.location_raw) meta += `<div class="meta-row"><span class="icon">📍</span>${event.location_raw}</div>`;
+    if (cost) meta += `<div class="meta-row"><span class="icon">💰</span>${cost}</div>`;
+    if (vibe) meta += `<div class="meta-row"><span class="icon">✨</span><span class="vibe-pill">${vibe}</span></div>`;
+
+    let actions = "";
+    if (event.ticket_url) {
+      actions += `<a class="btn btn-ticket" href="${event.ticket_url}" target="_blank" rel="noopener">🎟 Get tickets</a>`;
+    }
+    if (event.source_url) {
+      actions += `<a class="btn btn-source" href="${event.source_url}" target="_blank" rel="noopener">View post ↗</a>`;
+    }
+
+    return `
+      <div class="card">
+        <div class="card-header">
+          <span class="cat-emoji">${emoji}</span>
+          <div>
+            <div class="card-title">${event.name}</div>
+            ${event.is_scarce ? '<span class="scarce-badge">🔥 Limited spots</span>' : ""}
+          </div>
+        </div>
+        ${meta ? `<div class="meta">${meta}</div>` : ""}
+        ${event.description ? `<p class="desc">${event.description}</p>` : ""}
+        ${actions ? `<div class="card-actions">${actions}</div>` : ""}
+      </div>
+    `;
+  }
+
+  async function loadEvents() {
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const now = new Date().toISOString();
+
+    const { data, error } = await client
+      .from("events")
+      .select("*")
+      .eq("approved", true)
+      .eq("active", true)
+      .or(`date.gte.${now},date.is.null`)
+      .order("date", { ascending: true, nullsFirst: false })
+      .limit(12);
+
+    document.getElementById("loading").style.display = "none";
+
+    if (error) {
+      document.getElementById("error").style.display = "block";
+      document.getElementById("error-msg").textContent = error.message;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      document.getElementById("empty").style.display = "block";
+      return;
+    }
+
+    const container = document.getElementById("events");
+    const label     = document.getElementById("events-label");
+    const cards     = document.getElementById("cards");
+
+    label.textContent = `${data.length} event${data.length !== 1 ? "s" : ""} found`;
+    cards.innerHTML   = data.map(cardHTML).join("");
+    container.style.display = "block";
+  }
+
+  loadEvents();
+</script>
+</body>
+</html>

@@ -72,6 +72,8 @@ class ExtractedEvent(BaseModel):
     is_free: bool = False
     categories: list[EventCategory] = []
     vibe: Optional[SocialVibe] = None
+    ticket_url: Optional[str] = None        # direct link to buy tickets / book
+    is_scarce: bool = False                 # "limited spots", "almost sold out", etc.
     source_platform: SourcePlatform = SourcePlatform.MANUAL
     source_url: Optional[str] = None
     confidence: float = 0.0                 # 0.0–1.0, set by extractor

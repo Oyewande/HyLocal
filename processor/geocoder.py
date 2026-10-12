@@ -3,14 +3,15 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 
-import googlemaps
+import httpx
 from loguru import logger
 
-GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "").strip()
+
+GEOCODE_URL = "https://api.geoapify.com/v1/geocode/search"
 
 # Manually maintained lookup for common Lagos venues.
-# Checked first before hitting the Google Maps API — saves quota and handles
-# venues with inconsistent or abbreviated address formats.
+# Checked first — saves API quota and handles abbreviated names.
 VENUE_LOOKUP: dict[str, tuple[float, float]] = {
     "terra kulture": (6.4281, 3.4264),
     "cchub": (6.5006, 3.3896),
@@ -24,66 +25,69 @@ VENUE_LOOKUP: dict[str, tuple[float, float]] = {
     "muri okunola park": (6.4333, 3.4213),
 }
 
-# Broad Lagos bounding box — used to validate geocoding results
-# and avoid returning locations outside Lagos
+# Lagos bounding box — rejects results that fall outside
 LAGOS_BOUNDS = {
-    "lat_min": 6.35,
-    "lat_max": 6.70,
-    "lng_min": 3.10,
-    "lng_max": 3.70,
+    "lat_min": 6.35, "lat_max": 6.70,
+    "lng_min": 3.10, "lng_max": 3.70,
 }
 
 
 class Geocoder:
     """
-    Resolves a raw location string to (lat, lng) coordinates.
+    Resolves a raw location string to (lat, lng).
     Strategy:
-      1. Check the local venue lookup table
-      2. Call Google Maps Geocoding API with Lagos bias
-      3. Validate result is within Lagos bounds
+      1. Local venue lookup table (instant, free)
+      2. Geoapify Geocoding API (free tier: 3,000/day)
     """
 
     def __init__(self) -> None:
-        self._gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY) if GOOGLE_MAPS_API_KEY else None
-        if not self._gmaps:
-            logger.warning("GOOGLE_MAPS_API_KEY not set — geocoding will use venue lookup only")
+        if not GEOAPIFY_API_KEY:
+            logger.warning("GEOAPIFY_API_KEY not set — geocoding will use venue lookup only")
 
     def geocode(self, location_raw: str) -> tuple[float, float] | None:
-        """
-        Returns (lat, lng) or None if the location can't be resolved.
-        """
         if not location_raw:
             return None
 
-        # 1. Try local lookup first
+        # 1. Local lookup
         normalized = location_raw.lower().strip()
         for venue, coords in VENUE_LOOKUP.items():
             if venue in normalized:
-                logger.debug(f"Venue lookup hit for '{location_raw}' → {coords}")
+                logger.debug(f"Venue lookup hit: '{location_raw}' → {coords}")
                 return coords
 
-        # 2. Fall back to Google Maps
-        if self._gmaps:
-            return self._gmaps_geocode(location_raw)
+        # 2. Geoapify
+        if GEOAPIFY_API_KEY:
+            return self._geoapify_geocode(location_raw)
 
         return None
 
     @lru_cache(maxsize=256)
-    def _gmaps_geocode(self, location_raw: str) -> tuple[float, float] | None:
+    def _geoapify_geocode(self, location_raw: str) -> tuple[float, float] | None:
         try:
-            results = self._gmaps.geocode(
-                location_raw + ", Lagos, Nigeria",
-                components={"country": "NG"},
+            response = httpx.get(
+                GEOCODE_URL,
+                params={
+                    "text": f"{location_raw}, Lagos, Nigeria",
+                    "apiKey": GEOAPIFY_API_KEY,
+                    "limit": 1,
+                    "filter": "countrycode:ng",
+                    "bias": "proximity:3.3792,6.5244",  # biased toward Lagos centre
+                },
+                timeout=10,
             )
-            if not results:
+            response.raise_for_status()
+            data = response.json()
+
+            features = data.get("features", [])
+            if not features:
                 logger.debug(f"No geocoding results for '{location_raw}'")
                 return None
 
-            loc = results[0]["geometry"]["location"]
-            lat, lng = loc["lat"], loc["lng"]
+            props = features[0]["geometry"]["coordinates"]
+            lng, lat = props[0], props[1]  # GeoJSON is [lng, lat]
 
             if not self._in_lagos(lat, lng):
-                logger.warning(f"Geocoding result for '{location_raw}' is outside Lagos: ({lat}, {lng})")
+                logger.warning(f"Result for '{location_raw}' outside Lagos: ({lat}, {lng})")
                 return None
 
             logger.debug(f"Geocoded '{location_raw}' → ({lat}, {lng})")

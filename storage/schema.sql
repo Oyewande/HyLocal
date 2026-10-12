@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS events (
     is_free         BOOLEAN DEFAULT FALSE,
     categories      TEXT[] DEFAULT '{}',
     vibe            TEXT,
+    ticket_url      TEXT,
+    is_scarce       BOOLEAN DEFAULT FALSE,
     source_platform TEXT,
     source_url      TEXT UNIQUE,
     confidence      FLOAT DEFAULT 0.0,
@@ -55,7 +57,9 @@ CREATE TABLE IF NOT EXISTS preferences (
     categories      TEXT[] DEFAULT '{}',       -- interests e.g. ['music', 'tech']
     max_budget      INTEGER,                   -- NGN, null = no limit
     neighbourhoods  TEXT[] DEFAULT '{}',       -- e.g. ['Ikeja', 'Ketu']
-    vibes           TEXT[] DEFAULT '{}',       -- preferred social vibes
+    vibes           TEXT[] DEFAULT '{}',       -- preferred social vibes e.g. ['party', 'chill']
+    is_free_only    BOOLEAN DEFAULT FALSE,     -- only show free events
+    time_of_day     TEXT[] DEFAULT '{}',       -- ['morning','afternoon','evening','night']
     updated_at      TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id)
 );
@@ -71,6 +75,32 @@ CREATE TABLE IF NOT EXISTS feedback (
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, event_id)
 );
+
+-- ─────────────────────────────────────────────
+-- ─────────────────────────────────────────────
+-- ─────────────────────────────────────────────
+-- Event reminders
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS reminders (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+    event_id    UUID REFERENCES events(id) ON DELETE CASCADE,
+    remind_at   TIMESTAMPTZ NOT NULL,        -- 9am Lagos on event day
+    sent        BOOLEAN DEFAULT FALSE,
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, event_id)
+);
+CREATE INDEX IF NOT EXISTS reminders_remind_at_idx ON reminders (remind_at) WHERE sent = FALSE;
+
+-- Migration: ticket URL + scarcity signal
+-- Run this if the events table already exists
+-- ─────────────────────────────────────────────
+ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_url  TEXT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_scarce   BOOLEAN DEFAULT FALSE;
+
+-- Migration: expanded preferences
+ALTER TABLE preferences ADD COLUMN IF NOT EXISTS is_free_only BOOLEAN DEFAULT FALSE;
+ALTER TABLE preferences ADD COLUMN IF NOT EXISTS time_of_day  TEXT[] DEFAULT '{}';
 
 -- ─────────────────────────────────────────────
 -- Auto-update updated_at on events

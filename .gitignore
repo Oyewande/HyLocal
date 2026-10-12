@@ -1,5 +1,6 @@
-# Environment variables — never commit these
+# Environment
 .env
+*.env
 
 # Python
 __pycache__/
@@ -11,19 +12,25 @@ __pycache__/
 dist/
 build/
 .eggs/
-venv/
+*.egg
 .venv/
+venv/
 env/
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Logs
 *.log
 logs/
 
-# OS
+# macOS
 .DS_Store
-Thumbs.db
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
+*.swo

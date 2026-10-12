@@ -9,7 +9,7 @@ from loguru import logger
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from scheduler.jobs import scrape_and_process, send_friday_digest  # noqa: E402
+from scheduler.jobs import cleanup_past_events, scrape_and_process, send_friday_digest, send_reminders  # noqa: E402
 
 import asyncio  # noqa: E402
 
@@ -38,6 +38,26 @@ def build_scheduler() -> BlockingScheduler:
         trigger=CronTrigger(day_of_week="fri", hour=16, minute=0),
         id="friday_digest",
         name="Send Friday digest",
+        max_instances=1,
+        replace_existing=True,
+    )
+
+    # Hourly reminder check
+    scheduler.add_job(
+        send_reminders,
+        trigger=CronTrigger(minute=0),   # top of every hour
+        id="send_reminders",
+        name="Send event reminders",
+        max_instances=1,
+        replace_existing=True,
+    )
+
+    # Daily cleanup — deactivate past events every morning at 8am
+    scheduler.add_job(
+        cleanup_past_events,
+        trigger=CronTrigger(hour=8, minute=0),
+        id="cleanup_past_events",
+        name="Deactivate past events",
         max_instances=1,
         replace_existing=True,
     )

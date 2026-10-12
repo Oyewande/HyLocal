@@ -17,6 +17,11 @@ from loguru import logger
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
+# Validate env vars immediately after loading .env — fails loudly if anything
+# is missing rather than crashing silently mid-run.
+from config import validate_env  # noqa: E402
+validate_env()
+
 from bot.main import build_app  # noqa: E402
 from scheduler.main import build_scheduler, run_scrape_job  # noqa: E402
 

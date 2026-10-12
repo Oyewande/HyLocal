@@ -6,8 +6,12 @@ lxml==5.2.2
 twscrape==0.14.0
 instaloader==4.13.1
 
+# Image processing (flyer/vision extraction)
+Pillow==10.3.0
+
 # AI extraction
 anthropic==0.28.0
+openai>=1.30.0
 
 # Storage
 supabase==2.4.6
@@ -19,11 +23,9 @@ python-telegram-bot==21.3
 # Scheduling
 apscheduler==3.10.4
 
-# Geocoding
-googlemaps==4.10.0
-
 # Utilities
 python-dotenv==1.0.1
+dateparser==1.2.0
 pydantic==2.7.4
 tenacity==8.3.0
 loguru==0.7.2

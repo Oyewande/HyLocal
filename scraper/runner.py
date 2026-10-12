@@ -13,6 +13,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from loguru import logger  # noqa: E402
 
 from scraper.base import BaseScraper  # noqa: E402
+from scraper.eventbrite import EventbriteScraper  # noqa: E402
 from scraper.instagram import InstagramScraper  # noqa: E402
 from scraper.models import RawSignal  # noqa: E402
 from scraper.twitter import TwitterScraper  # noqa: E402
@@ -22,6 +23,7 @@ from scraper.twitter import TwitterScraper  # noqa: E402
 ACTIVE_SCRAPERS: list[Type[BaseScraper]] = [
     TwitterScraper,
     InstagramScraper,
+    EventbriteScraper,
 ]
 
 
